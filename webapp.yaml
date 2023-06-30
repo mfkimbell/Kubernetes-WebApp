@@ -1,0 +1,65 @@
+#this is the configuration for the deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webapp-deployment
+  labels:
+    app: webapp
+spec:
+  #how many pod replicas
+  replicas: 1
+  #this lets K8 kow which pods belowng to which deployment
+  selector:
+    matchLabels:
+      app: webapp
+      # template is the configuration for the POD within deployment
+  template:
+    metadata:
+    #pods have unique names, but same label
+      labels:
+        app: webapp
+    spec:
+    #specific containers with images 
+      containers:
+      - name: webapp
+        image: nanajanashia/k8s-demo-app:v1.0
+        ports:
+        #port for the specific application
+        - containerPort: 3000
+        env:
+        - name: USER_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: USER_PWD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+        - name: DB_URL
+          valueFrom:
+            configMapKeyRef:
+              name: mongo-config
+              key: mongo-url
+
+---
+#seperate YAML section
+
+apiVersion: v1
+kind: Service
+#services forward requests to it's endpoint pods
+#this block connects services to pods
+metadata:
+  #matches the name of service in mongo-config
+  name: webapp-service
+spec:
+  type: NodePort
+  selector:
+    app: webapp
+  ports:
+    - protocol: TCP
+      port: 3000
+      #always same as the container poort
+      targetPort: 3000
+      nodePort: 30100

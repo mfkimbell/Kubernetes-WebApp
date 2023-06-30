@@ -1,0 +1,57 @@
+#this is the configuration for the deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-deployment
+  labels:
+    app: mongo
+spec:
+  #how many pod replicas
+  replicas: 1
+  #this lets K8 kow which pods belowng to which deployment
+  selector:
+    matchLabels:
+      app: mongo
+      # template is the configuration for the POD within deployment
+  template:
+    metadata:
+    #pods have unique names, but same label
+      labels:
+        app: mongo
+    spec:
+    #specific containers with images (mongodb in this case)
+      containers:
+      - name: mongodb
+        image: mongo:5.0
+        ports:
+        - containerPort: 27017
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-user
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secret
+              key: mongo-password
+
+---
+#seperate YAML section
+
+apiVersion: v1
+kind: Service
+#services forward requests to it's endpoint pods
+#this block connects services to pods
+metadata:
+  #matches the name of service in mongo-config
+  name: mongo-service
+spec:
+  selector:
+    app: mongo
+  ports:
+    - protocol: TCP
+      port: 27017
+      #always same as the container poort
+      targetPort: 27017
